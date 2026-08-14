@@ -1,0 +1,118 @@
+%# ATS-safe variant: single column, real headings, no photo, no sidebar, no
+%# tabulars, no colour. Everything must come back out of pdftotext in reading
+%# order. If you are tempted to add a text box or a two-column layout here,
+%# add it to designed.tex.j2 instead.
+\BLOCK{ set use_color = false }
+\BLOCK{ include '_preamble.tex.j2' }
+\usepackage[a4paper,margin=1.9cm]{geometry}
+
+\begin{document}
+
+{\huge\bfseries \VAR{ doc.full_name }}
+
+\vspace{0.35em}
+{\large \VAR{ doc.headline }}
+
+\vspace{0.5em}
+%# sloppypar + raggedright: link labels are long unhyphenatable tokens, and
+%# without this TeX sets an overfull line and runs them off the page edge
+%# rather than breaking at the separators.
+\begin{sloppypar}\raggedright
+\VAR{ doc.email }
+\BLOCK{ if doc.phone } | \VAR{ doc.phone }\BLOCK{ endif }
+\BLOCK{ if doc.location } | \VAR{ doc.location }\BLOCK{ endif }
+\BLOCK{ for link in doc.links } | \href{\VAR{ link.url }}{\VAR{ link.label }}\BLOCK{ endfor }
+\end{sloppypar}
+
+\BLOCK{ if doc.summary }
+\cvsection{\VAR{ doc.labels.summary }}
+\VAR{ doc.summary }
+\BLOCK{ endif }
+
+\BLOCK{ if doc.experience }
+\cvsection{\VAR{ doc.labels.experience }}
+\BLOCK{ for e in doc.experience }
+\entrybreak
+\textbf{\VAR{ e.title }}\hfill \VAR{ e.period }
+
+\textit{\VAR{ e.org }}\BLOCK{ if e.location }, \VAR{ e.location }\BLOCK{ endif }
+\BLOCK{ if e.bullets }
+\begin{itemize}
+\BLOCK{ for b in e.bullets }
+  \item \VAR{ b }
+\BLOCK{ endfor }
+\end{itemize}
+\BLOCK{ endif }
+\BLOCK{ if e.tech }
+\textit{Tech:} \VAR{ e.tech|join(', ') }
+\BLOCK{ endif }
+
+\vspace{0.5em}
+\BLOCK{ endfor }
+\BLOCK{ endif }
+
+\BLOCK{ if doc.education }
+\cvsection{\VAR{ doc.labels.education }}
+\BLOCK{ for e in doc.education }
+\entrybreak
+\textbf{\VAR{ e.title }}\hfill \VAR{ e.period }
+
+\textit{\VAR{ e.org }}\BLOCK{ if e.location }, \VAR{ e.location }\BLOCK{ endif }
+\BLOCK{ if e.bullets }
+\begin{itemize}
+\BLOCK{ for b in e.bullets }
+  \item \VAR{ b }
+\BLOCK{ endfor }
+\end{itemize}
+\BLOCK{ endif }
+
+\vspace{0.5em}
+\BLOCK{ endfor }
+\BLOCK{ endif }
+
+\BLOCK{ if doc.projects }
+\cvsection{\VAR{ doc.labels.projects }}
+\BLOCK{ for p in doc.projects }
+\entrybreak
+\textbf{\VAR{ p.title }}\BLOCK{ if p.url } — \href{\VAR{ p.url }}{\VAR{ p.url }}\BLOCK{ endif }
+\BLOCK{ if p.bullets }
+\begin{itemize}
+\BLOCK{ for b in p.bullets }
+  \item \VAR{ b }
+\BLOCK{ endfor }
+\end{itemize}
+\BLOCK{ endif }
+\BLOCK{ if p.tech }
+\textit{Tech:} \VAR{ p.tech|join(', ') }
+\BLOCK{ endif }
+
+\vspace{0.5em}
+\BLOCK{ endfor }
+\BLOCK{ endif }
+
+\BLOCK{ if doc.certificates }
+\cvsection{\VAR{ doc.labels.certificates }}
+\begin{itemize}
+\BLOCK{ for c in doc.certificates }
+  \item \textbf{\VAR{ c.name }} — \VAR{ c.issuer }, \VAR{ c.date }\BLOCK{ if c.credential_id } (\VAR{ doc.labels.credential } \VAR{ c.credential_id })\BLOCK{ endif }
+\BLOCK{ endfor }
+\end{itemize}
+\BLOCK{ endif }
+
+\BLOCK{ if doc.skill_groups }
+\cvsection{\VAR{ doc.labels.skills }}
+\BLOCK{ for g in doc.skill_groups }
+\textbf{\VAR{ g.name }:} \VAR{ g.items|join(', ') }
+
+\BLOCK{ endfor }
+\BLOCK{ endif }
+
+\BLOCK{ if doc.languages }
+\cvsection{\VAR{ doc.labels.languages }}
+\BLOCK{ for l in doc.languages }
+\textbf{\VAR{ l.name }:} \VAR{ l.items|join(', ') }
+
+\BLOCK{ endfor }
+\BLOCK{ endif }
+
+\end{document}

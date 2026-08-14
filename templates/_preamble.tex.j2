@@ -1,0 +1,48 @@
+%# Shared preamble. Include AFTER setting `use_color` in the child template.
+%# Page geometry is deliberately NOT here: the two variants differ on it.
+\documentclass[11pt,a4paper]{article}
+
+\usepackage{fontspec}
+\usepackage{polyglossia}
+\setmainlanguage{\VAR{ 'polish' if doc.lang == 'pl' else 'english' }}
+
+\setmainfont{TeX Gyre Heros}
+\setsansfont{TeX Gyre Heros}
+\newfontfamily\headingfont{TeX Gyre Heros}
+
+\usepackage{xcolor}
+\BLOCK{ if use_color }
+\definecolor{accent}{HTML}{\VAR{ doc.accent_hex }}
+\BLOCK{ else }
+\definecolor{accent}{HTML}{000000}
+\BLOCK{ endif }
+\definecolor{muted}{HTML}{555555}
+
+\usepackage{enumitem}
+\setlist[itemize]{leftmargin=1.1em, itemsep=0.12em, topsep=0.25em, parsep=0pt, label=\textbullet}
+
+\usepackage{titlesec}
+\titleformat{\section}
+  {\large\bfseries\color{accent}}{}{0pt}{}
+  [\vspace{-0.55em}{\color{accent}\rule{\linewidth}{0.7pt}}]
+\titlespacing*{\section}{0pt}{1.15em}{0.55em}
+
+\usepackage{needspace}
+%# Page-break guards. LaTeX will happily strand a section heading or a job title
+%# at the foot of a page; these force the break one entry earlier instead.
+%# Always use \cvsection and \entrybreak rather than bare \section*.
+\newcommand{\cvsection}[1]{\needspace{6\baselineskip}\section*{#1}}
+\newcommand{\entrybreak}{\needspace{4\baselineskip}}
+
+\usepackage[hidelinks]{hyperref}
+\hypersetup{
+  pdftitle={\VAR{ doc.full_name } — CV},
+  pdfauthor={\VAR{ doc.full_name }},
+  pdfsubject={\VAR{ doc.headline }},
+}
+\BLOCK{ if use_color }
+\hypersetup{colorlinks=true, urlcolor=accent, linkcolor=accent}
+\BLOCK{ endif }
+
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
