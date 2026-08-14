@@ -25,6 +25,33 @@ out/acme-data-engineer/
 
 Send whichever suits the application. They contain the same facts.
 
+## One page, enforced
+
+A CV is a one-page document. That's a hard limit here, not a suggestion — but
+a model can't see how long its output renders, so asking nicely doesn't hold it.
+
+The prompt gives a content budget measured against the actual templates (9
+bullets across 3 roles, one project, 2-3 certificates, 3-4 skill groups). Then
+every CV is typeset, the pages are **counted**, and if it overflows the model is
+told what it produced and asked for a shorter selection:
+
+```
+en: ats came to 2 pages (limit 1) — asking for a shorter selection.
+```
+
+The retry instructs it to drop whole bullets rather than compress wording, and
+to cut in a fixed order — projects, then tangential certificates, then bullets
+from the least relevant role — keeping every role on the CV for continuity.
+
+`--max-pages 2` raises the ceiling; `--retries 2` allows another attempt. If it
+still overflows, the PDFs are written anyway with a clear warning, so you can
+trim by hand rather than losing the run.
+
+The templates are tuned so a CV at the documented budget fits exactly. There's a
+test asserting that in all four language/variant combinations — if it fails, the
+fix is to make the template denser, not to cut the budget, because a CV shrunk
+to three bullets to satisfy a loose layout is a worse CV.
+
 ## It cannot invent credentials
 
 This is the property the whole design is built around, because a CV is a factual

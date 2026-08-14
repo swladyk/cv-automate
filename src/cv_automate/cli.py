@@ -26,7 +26,7 @@ from .profile import (
     load_profile,
     unreferenced_ids,
 )
-from .tailor import TailorError, tailor
+from .tailor import Overflow, TailorError, tailor
 
 app = typer.Typer(
     add_completion=False,
@@ -81,6 +81,34 @@ def _write_tailoring(
         "tailoring": tailoring.model_dump(mode="json"),
     }
     path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
+def _accumulate_usage(usage: Optional[dict], result) -> dict:
+    """Sum token usage across retries, so the reported cost is the real one."""
+    usage = usage or {"input_tokens": 0, "output_tokens": 0, "cache_read_input_tokens": 0, "attempts": 0}
+    usage["input_tokens"] += result.input_tokens
+    usage["output_tokens"] += result.output_tokens
+    usage["cache_read_input_tokens"] += result.cache_read_tokens
+    usage["attempts"] = usage.get("attempts", 0) + 1
+    return usage
+
+
+def _report_overflow(over: list, language: str, max_pages: int, offline: bool) -> None:
+    """Say plainly that the page limit was missed, and what to do about it."""
+    detail = ", ".join(f"{b.variant} is {b.pages} pages" for b in over)
+    console.print(
+        f"[bold yellow]Over the page limit[/] ({language}): {detail}, limit is {max_pages}."
+    )
+    if offline:
+        console.print(
+            "[dim]  --stub selects everything and --reuse re-renders a saved selection, so "
+            "neither trims. Run without them to have the length enforced.[/]"
+        )
+    else:
+        console.print(
+            "[dim]  The PDFs were still written — trim them by hand, raise the ceiling with "
+            "--max-pages 2, or allow another attempt with --retries 2.[/]"
+        )
 
 
 def _read_tailoring(path: Path) -> tuple[TailoredCV, AccentDecision]:
@@ -173,6 +201,8 @@ def gen(
     accent: Optional[str] = typer.Option(None, "--accent", help="Force an accent colour, e.g. '#FF6B00'."),
     no_accent: bool = typer.Option(False, "--no-accent", help="Use your default accent, ignoring the company's."),
     default_accent: str = typer.Option(DEFAULT_ACCENT, "--default-accent", help="Your own accent colour."),
+    max_pages: int = typer.Option(1, "--max-pages", min=1, help="Page limit per CV."),
+    retries: int = typer.Option(1, "--retries", min=0, help="Extra attempts to fit the page limit."),
     reuse: bool = typer.Option(False, "--reuse", help="Re-render a cached tailoring. No API call."),
     stub: bool = typer.Option(False, "--stub", help="Select everything, rephrase nothing. No API call."),
     profile_path: Path = typer.Option(DEFAULT_PROFILE, "--profile", help="Profile to read."),
@@ -214,61 +244,90 @@ def gen(
     override = default_accent if no_accent else accent
     results = []
 
+    offline = reuse or stub
+
     for language in langs:
         lang_dir = out_dir / slug / language
         lang_dir.mkdir(parents=True, exist_ok=True)
         cache_path = lang_dir / TAILORING_FILE
-        usage = None
+        usage: Optional[dict] = None
         used_model = None
+        overflow: Optional[Overflow] = None
+        attempt = 0
 
-        if reuse:
-            tailoring, decision = _read_tailoring(cache_path)
-            if override is not None:
-                decision = clamp_accent(override, default_accent)
-            console.print(f"[dim]{language}: reusing {cache_path}[/]")
-        elif stub:
-            tailoring = stub_tailoring(profile, language)
-            decision = clamp_accent(override or default_accent, default_accent)
-        else:
-            assert posting is not None
-            try:
-                with console.status(f"Tailoring for {language}…"):
-                    result = tailor(profile, posting, language, model=model or "claude-opus-5")
-            except TailorError as exc:
-                _die(str(exc))
-            tailoring = result.tailoring
-            used_model = model or "claude-opus-5"
-            usage = {
-                "input_tokens": result.input_tokens,
-                "output_tokens": result.output_tokens,
-                "cache_read_input_tokens": result.cache_read_tokens,
-            }
-            decision = resolve_accent(
-                tailoring.branding.accent_hex,
-                tailoring.branding.confidence,
-                default_accent,
-                override,
-            )
-            console.print(
-                f"[dim]{language}: {result.input_tokens} in / {result.output_tokens} out"
-                f" ({result.cache_read_tokens} cached)[/]"
-            )
-
-        if decision.note:
-            console.print(f"[yellow]Accent[/] {decision.note}")
-
-        for variant_name in variants:
-            try:
-                built = build_cv(
-                    profile, tailoring, language, variant_name, decision, lang_dir, repo_root=Path(".")
+        # The model cannot see how long its output renders, so the only reliable
+        # way to hold a page limit is to typeset it, measure, and ask again.
+        while True:
+            if reuse:
+                tailoring, decision = _read_tailoring(cache_path)
+                if override is not None:
+                    decision = clamp_accent(override, default_accent)
+                console.print(f"[dim]{language}: reusing {cache_path}[/]")
+            elif stub:
+                tailoring = stub_tailoring(profile, language)
+                decision = clamp_accent(override or default_accent, default_accent)
+            else:
+                assert posting is not None
+                label = "Tailoring" if attempt == 0 else f"Trimming to {max_pages} page(s)"
+                try:
+                    with console.status(f"{label} for {language}…"):
+                        result = tailor(
+                            profile,
+                            posting,
+                            language,
+                            model=model or "claude-opus-5",
+                            overflow=overflow,
+                        )
+                except TailorError as exc:
+                    _die(str(exc))
+                tailoring = result.tailoring
+                used_model = model or "claude-opus-5"
+                usage = _accumulate_usage(usage, result)
+                decision = resolve_accent(
+                    tailoring.branding.accent_hex,
+                    tailoring.branding.confidence,
+                    default_accent,
+                    override,
                 )
-            except TailoringError as exc:
-                _die(str(exc))
-            except LatexError as exc:
-                _die(str(exc))
+                console.print(
+                    f"[dim]{language}: {result.input_tokens} in / {result.output_tokens} out"
+                    f" ({result.cache_read_tokens} cached)[/]"
+                )
+
+            if decision.note and attempt == 0:
+                console.print(f"[yellow]Accent[/] {decision.note}")
+
+            built_variants = []
+            for variant_name in variants:
+                try:
+                    built = build_cv(
+                        profile, tailoring, language, variant_name, decision, lang_dir, repo_root=Path(".")
+                    )
+                except TailoringError as exc:
+                    _die(str(exc))
+                except LatexError as exc:
+                    _die(str(exc))
+                built_variants.append(built)
+
+            longest = max(built_variants, key=lambda b: b.pages)
+            if longest.pages <= max_pages or offline or attempt >= retries:
+                break
+
+            attempt += 1
+            console.print(
+                f"[yellow]{language}: {longest.variant} came to {longest.pages} pages "
+                f"(limit {max_pages}) — asking for a shorter selection.[/]"
+            )
+            overflow = Overflow(pages=longest.pages, max_pages=max_pages, previous=tailoring)
+
+        for built in built_variants:
             for warning in built.warnings:
                 console.print(f"[yellow]Warning[/] {warning}")
-            results.append((language, variant_name, built.pdf))
+            results.append((language, built.variant, built.pdf, built.pages))
+
+        over = [b for b in built_variants if b.overflows(max_pages)]
+        if over:
+            _report_overflow(over, language, max_pages, offline)
 
         if not reuse:
             _write_tailoring(
@@ -287,9 +346,16 @@ def gen(
     table = Table(show_edge=False, title_style="bold")
     table.add_column("Language")
     table.add_column("Variant")
+    table.add_column("Pages", justify="right")
     table.add_column("File")
-    for language, variant_name, pdf in results:
-        table.add_row(language, variant_name, str(pdf))
+    for language, variant_name, pdf, pages in results:
+        over = pages > max_pages
+        table.add_row(
+            language,
+            variant_name,
+            f"[red]{pages}[/]" if over else str(pages),
+            str(pdf),
+        )
     console.print(table)
     console.print(
         "[dim]The ats variant is for upload forms; designed is for attaching or emailing.[/]"
