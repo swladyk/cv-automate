@@ -1,0 +1,170 @@
+%# Designed variant: tinted sidebar, circular photo, accent colour, icons.
+%# Anything that helps a human and hurts a parser belongs here, not in ats.tex.j2.
+\BLOCK{ set use_color = true }
+\BLOCK{ include '_preamble.tex.j2' }
+
+\usepackage[a4paper,top=1.4cm,bottom=1.4cm,left=1.2cm,right=1.2cm]{geometry}
+\usepackage{paracol}
+\usepackage{tikz}
+\usepackage{eso-pic}
+\usepackage{fontawesome5}
+
+\definecolor{sidebarbg}{HTML}{F4F6F8}
+
+%# Sidebar geometry. The band behind the sidebar is DERIVED from the column
+%# split rather than guessed, so the two can never drift apart and leave text
+%# sitting off the tint. If you change the ratio or the page margin, change them
+%# here and the band follows.
+\newcommand{\sidebarratio}{0.36}
+\setlength{\columnsep}{0.9cm}
+\columnratio{\sidebarratio}
+
+\newlength{\sidebandwidth}
+\setlength{\sidebandwidth}{\textwidth}
+\addtolength{\sidebandwidth}{-\columnsep}
+\setlength{\sidebandwidth}{\sidebarratio\sidebandwidth}
+\addtolength{\sidebandwidth}{1.2cm}      % the page's left margin
+\addtolength{\sidebandwidth}{0.5\columnsep} % half the gutter, so text never sits on the edge
+
+%# Full-height tinted band behind the left column, on every page.
+\AddToShipoutPictureBG{%
+  \AtPageLowerLeft{%
+    \color{sidebarbg}%
+    \rule{\sidebandwidth}{\paperheight}%
+  }%
+}
+
+%# Sidebar headings are smaller and rule-less; the body keeps the ruled ones.
+\newcommand{\sidebarsection}[1]{%
+  \vspace{0.9em}%
+  {\bfseries\color{accent}\MakeUppercase{#1}}\par
+  \vspace{0.15em}{\color{accent}\rule{\linewidth}{0.5pt}}\par
+  \vspace{0.35em}%
+}
+
+\newcommand{\iconline}[2]{%
+  \makebox[1.1em][l]{\color{accent}#1}#2\par\vspace{0.25em}%
+}
+
+\begin{document}
+%# The sidebar is narrow and full of long link labels; without looser breaking
+%# TeX sets overfull lines that run off the edge of the tint.
+\sloppy
+\begin{paracol}{2}
+
+%# ---------------------------------------------------------------- sidebar
+\BLOCK{ if doc.photo }
+\begin{center}
+\begin{tikzpicture}
+  \clip (0,0) circle (1.55cm);
+  \node at (0,0) {\includegraphics[width=3.4cm]{\VAR{ doc.photo }}};
+\end{tikzpicture}
+\end{center}
+\vspace{0.4em}
+\BLOCK{ endif }
+
+{\LARGE\bfseries\color{accent} \VAR{ doc.full_name }}\par
+\vspace{0.25em}
+{\color{muted} \VAR{ doc.headline }}\par
+
+\sidebarsection{\VAR{ doc.labels.contact }}
+\iconline{\faEnvelope}{\href{mailto:\VAR{ doc.email }}{\VAR{ doc.email }}}
+\BLOCK{ if doc.phone }
+\iconline{\faPhone}{\VAR{ doc.phone }}
+\BLOCK{ endif }
+\BLOCK{ if doc.location }
+\iconline{\faMapMarker*}{\VAR{ doc.location }}
+\BLOCK{ endif }
+\BLOCK{ for link in doc.links }
+\iconline{\VAR{ icon(link.icon)|raw }}{\href{\VAR{ link.url }}{\VAR{ link.label }}}
+\BLOCK{ endfor }
+
+\BLOCK{ if doc.skill_groups }
+\sidebarsection{\VAR{ doc.labels.skills }}
+\BLOCK{ for g in doc.skill_groups }
+{\bfseries \VAR{ g.name }}\par
+\VAR{ g.items|join(', ') }\par\vspace{0.5em}
+\BLOCK{ endfor }
+\BLOCK{ endif }
+
+\BLOCK{ if doc.languages }
+\sidebarsection{\VAR{ doc.labels.languages }}
+\BLOCK{ for l in doc.languages }
+{\bfseries \VAR{ l.name }} — \VAR{ l.items|join(', ') }\par\vspace{0.15em}
+\BLOCK{ endfor }
+\BLOCK{ endif }
+
+\BLOCK{ if doc.certificates }
+\sidebarsection{\VAR{ doc.labels.certificates }}
+\BLOCK{ for c in doc.certificates }
+{\bfseries \VAR{ c.name }}\par
+{\color{muted}\small \VAR{ c.issuer }, \VAR{ c.date }}\par\vspace{0.45em}
+\BLOCK{ endfor }
+\BLOCK{ endif }
+
+%# ------------------------------------------------------------------- body
+\switchcolumn
+
+\BLOCK{ if doc.summary }
+\cvsection{\VAR{ doc.labels.summary }}
+\VAR{ doc.summary }
+\BLOCK{ endif }
+
+\BLOCK{ if doc.experience }
+\cvsection{\VAR{ doc.labels.experience }}
+\BLOCK{ for e in doc.experience }
+\entrybreak
+{\bfseries \VAR{ e.title }}\hfill{\color{muted}\small \VAR{ e.period }}\par
+{\color{accent} \VAR{ e.org }}\BLOCK{ if e.location }{\color{muted}, \VAR{ e.location }}\BLOCK{ endif }\par
+\BLOCK{ if e.bullets }
+\begin{itemize}
+\BLOCK{ for b in e.bullets }
+  \item \VAR{ b }
+\BLOCK{ endfor }
+\end{itemize}
+\BLOCK{ endif }
+\BLOCK{ if e.tech }
+{\color{muted}\small \VAR{ e.tech|join(' · ') }}\par
+\BLOCK{ endif }
+\vspace{0.7em}
+\BLOCK{ endfor }
+\BLOCK{ endif }
+
+\BLOCK{ if doc.projects }
+\cvsection{\VAR{ doc.labels.projects }}
+\BLOCK{ for p in doc.projects }
+\entrybreak
+{\bfseries \VAR{ p.title }}\BLOCK{ if p.url } \href{\VAR{ p.url }}{\small\faGithub}\BLOCK{ endif }\par
+\BLOCK{ if p.bullets }
+\begin{itemize}
+\BLOCK{ for b in p.bullets }
+  \item \VAR{ b }
+\BLOCK{ endfor }
+\end{itemize}
+\BLOCK{ endif }
+\BLOCK{ if p.tech }
+{\color{muted}\small \VAR{ p.tech|join(' · ') }}\par
+\BLOCK{ endif }
+\vspace{0.6em}
+\BLOCK{ endfor }
+\BLOCK{ endif }
+
+\BLOCK{ if doc.education }
+\cvsection{\VAR{ doc.labels.education }}
+\BLOCK{ for e in doc.education }
+\entrybreak
+{\bfseries \VAR{ e.title }}\hfill{\color{muted}\small \VAR{ e.period }}\par
+{\color{accent} \VAR{ e.org }}\BLOCK{ if e.location }{\color{muted}, \VAR{ e.location }}\BLOCK{ endif }\par
+\BLOCK{ if e.bullets }
+\begin{itemize}
+\BLOCK{ for b in e.bullets }
+  \item \VAR{ b }
+\BLOCK{ endfor }
+\end{itemize}
+\BLOCK{ endif }
+\vspace{0.6em}
+\BLOCK{ endfor }
+\BLOCK{ endif }
+
+\end{paracol}
+\end{document}

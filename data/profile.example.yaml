@@ -1,0 +1,211 @@
+# Master profile — the single source of truth for every CV this tool generates.
+#
+# Copy to data/profile.yaml and replace with your own history. The person below
+# is fictional placeholder data.
+#
+# Rules that matter:
+#   * Every list item needs a stable, unique `id`. The model may only reference
+#     ids that exist here — that is what stops it inventing credentials. Once an
+#     id is in use, don't renumber it or old tailorings stop reproducing.
+#   * Any text field may be a plain string, or {en: ..., pl: ...}. Missing
+#     translations fall back to English, so translate only what matters.
+#   * Write bullets factually and completely. The model shortens and re-angles
+#     them per job; it cannot add anything you did not write here.
+
+personal:
+  full_name: Alex Nowak
+  headline:
+    en: Data Engineer
+    pl: Inżynier Danych
+  email: alex.nowak@example.com
+  phone: "+48 500 100 200"
+  location:
+    en: Warsaw, Poland
+    pl: Warszawa, Polska
+  # Used by the designed variant only. Path is relative to the repo root.
+  photo: data/assets/photo.jpg
+  links:
+    - id: link-github
+      label: github.com/alexnowak
+      url: https://github.com/alexnowak
+      icon: github
+    - id: link-linkedin
+      label: linkedin.com/in/alexnowak
+      url: https://www.linkedin.com/in/alexnowak
+      icon: linkedin
+    - id: link-site
+      label: alexnowak.dev
+      url: https://alexnowak.dev
+      icon: globe
+
+summary:
+  en: >-
+    Data engineer with six years building batch and streaming pipelines for
+    analytics teams. Comfortable owning a platform end to end, from ingestion
+    through to the dashboards people actually open.
+  pl: >-
+    Inżynier danych z sześcioletnim doświadczeniem w budowie potoków wsadowych
+    i strumieniowych dla zespołów analitycznych.
+
+experience:
+  - id: exp-northwind-2023
+    company: Northwind R&D
+    title:
+      en: Senior Data Engineer
+      pl: Starszy Inżynier Danych
+    location: Warsaw, Poland
+    start: "2023-03"
+    end: null # null means "present"
+    tech: [Python, Airflow, dbt, Snowflake, Terraform]
+    bullets:
+      - id: exp-northwind-2023-b1
+        text:
+          en: >-
+            Rebuilt the nightly ingestion pipeline on Airflow and dbt, cutting the
+            end-to-end run from 6 hours to 40 minutes and reducing warehouse spend
+            by 50% growth-adjusted.
+          pl: >-
+            Przebudowałem nocny potok ingestii na Airflow i dbt, skracając czas
+            przetwarzania z 6 godzin do 40 minut.
+      - id: exp-northwind-2023-b2
+        text:
+          en: >-
+            Introduced contract tests between producer services and the warehouse,
+            taking schema-drift incidents from roughly two a month to zero.
+      - id: exp-northwind-2023-b3
+        text:
+          en: >-
+            Mentored two junior engineers through their first on-call rotation and
+            wrote the runbooks the team still uses.
+      - id: exp-northwind-2023-b4
+        text:
+          en: >-
+            Migrated 40+ legacy Bash jobs (files named foo_bar, baz_qux) into
+            versioned, tested Python operators.
+
+  - id: exp-contoso-2020
+    company: Contoso Analytics
+    title:
+      en: Data Engineer
+      pl: Inżynier Danych
+    location: Kraków, Poland
+    start: "2020-01"
+    end: "2023-02"
+    tech: [Python, Spark, Kafka, PostgreSQL]
+    bullets:
+      - id: exp-contoso-2020-b1
+        text:
+          en: >-
+            Built a Kafka-to-Spark streaming pipeline handling 12k events/second
+            for the real-time fraud scoring team.
+      - id: exp-contoso-2020-b2
+        text:
+          en: >-
+            Owned the $100k annual cloud budget for the data platform and brought
+            it in 18% under forecast two years running.
+      - id: exp-contoso-2020-b3
+        text:
+          en: >-
+            Wrote the C++ extension that sped up the geo-matching step 12x after
+            profiling showed it dominated the job.
+
+  - id: exp-fabrikam-2018
+    company: Fabrikam
+    title:
+      en: Junior Backend Developer
+      pl: Młodszy Programista Backendu
+    location: Kraków, Poland
+    start: "2018-07"
+    end: "2019-12"
+    tech: [Python, Django, PostgreSQL]
+    bullets:
+      - id: exp-fabrikam-2018-b1
+        text:
+          en: >-
+            Shipped the reporting API used by the customer success team, still in
+            production five years later.
+
+education:
+  - id: edu-agh-2014
+    institution: AGH University of Science and Technology
+    degree:
+      en: MSc, Computer Science
+      pl: Magister inżynier, Informatyka
+    field:
+      en: Distributed Systems
+      pl: Systemy Rozproszone
+    location: Kraków, Poland
+    start: "2014"
+    end: "2019"
+    bullets:
+      - id: edu-agh-2014-b1
+        text:
+          en: >-
+            Thesis on consistency trade-offs in geo-replicated key-value stores,
+            graded 5.0/5.0.
+
+certificates:
+  - id: cert-aws-saa
+    name: AWS Certified Solutions Architect – Associate
+    issuer: Amazon Web Services
+    date: "2024-06"
+    url: https://www.credly.com/users/example
+    credential_id: AWS-SAA-000000
+  - id: cert-dbt
+    name: dbt Analytics Engineering Certification
+    issuer: dbt Labs
+    date: "2023-11"
+  - id: cert-scrum
+    name: Professional Scrum Master I
+    issuer: Scrum.org
+    date: "2021-04"
+
+projects:
+  - id: proj-lakekeeper
+    name: lakekeeper
+    url: https://github.com/alexnowak/lakekeeper
+    description:
+      en: Open-source CLI that reconciles data-lake partitions against a catalogue.
+    tech: [Python, Rust, Delta Lake]
+    bullets:
+      - id: proj-lakekeeper-b1
+        text:
+          en: >-
+            340 stars; used in production by three companies who contribute back.
+  - id: proj-plotbot
+    name: plotbot
+    url: https://github.com/alexnowak/plotbot
+    description:
+      en: Slack bot that renders matplotlib charts from natural-language questions.
+    tech: [Python, Slack API, DuckDB]
+    bullets:
+      - id: proj-plotbot-b1
+        text:
+          en: Handles ~200 queries a week inside a 400-person company.
+
+skills:
+  - { id: skill-python, name: Python, category: languages, level: expert }
+  - { id: skill-sql, name: SQL, category: languages, level: expert }
+  - { id: skill-go, name: Go, category: languages, level: working }
+  - { id: skill-cpp, name: C++, category: languages, level: working }
+  - { id: skill-airflow, name: Apache Airflow, category: data }
+  - { id: skill-spark, name: Apache Spark, category: data }
+  - { id: skill-kafka, name: Apache Kafka, category: data }
+  - { id: skill-dbt, name: dbt, category: data }
+  - { id: skill-snowflake, name: Snowflake, category: data }
+  - { id: skill-aws, name: AWS, category: infrastructure }
+  - { id: skill-terraform, name: Terraform, category: infrastructure }
+  - { id: skill-docker, name: Docker, category: infrastructure }
+  - { id: skill-k8s, name: Kubernetes, category: infrastructure }
+  - { id: skill-postgres, name: PostgreSQL, category: infrastructure }
+
+languages:
+  - id: lang-pl
+    name: { en: Polish, pl: Polski }
+    level: { en: Native, pl: Ojczysty }
+  - id: lang-en
+    name: { en: English, pl: Angielski }
+    level: { en: Fluent (C1), pl: Biegły (C1) }
+  - id: lang-de
+    name: { en: German, pl: Niemiecki }
+    level: { en: Conversational (B1), pl: Komunikatywny (B1) }

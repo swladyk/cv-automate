@@ -216,3 +216,17 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# --- cv-automate ---
+# Generated CVs and LaTeX build artifacts
+out/
+
+# Personal data. profile.example.yaml stays tracked; your real profile and photo
+# do not. If you want to version your real profile, use `git add -f`.
+data/profile.yaml
+data/assets/
+
+# Saved job postings (may contain copyrighted posting text)
+jobs/*
+!jobs/.gitkeep
+!jobs/sample-*.md
