@@ -138,12 +138,19 @@ def test_ats_text_survives_extraction(profile, accent, tmp_path) -> None:
     assert profile.personal.full_name in text
     assert profile.personal.email in text
 
-    headings = [
-        line.strip()
-        for line in text.splitlines()
-        if line.strip() in {"Profile", "Experience", "Education", "Projects", "Certificates", "Skills", "Languages"}
-    ]
-    assert headings == ["Profile", "Experience", "Education", "Projects", "Certificates", "Skills", "Languages"]
+    # Assert on order of appearance, not on each heading sitting alone on its
+    # own extracted line — that depends on how pdftotext happens to lay out the
+    # page, which shifts with content density and is not what we care about.
+    expected = ["Profile", "Experience", "Education", "Projects", "Certificates", "Skills", "Languages"]
+    positions = []
+    for heading in expected:
+        at = text.find(heading)
+        assert at >= 0, f"section {heading!r} is missing from the extracted text"
+        positions.append(at)
+    assert positions == sorted(positions), (
+        "sections do not extract in reading order: "
+        + ", ".join(f"{h}@{p}" for h, p in zip(expected, positions))
+    )
 
 
 @needs_latex

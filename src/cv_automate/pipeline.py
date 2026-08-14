@@ -17,6 +17,9 @@ from .render import build_document, make_env, render
 
 VARIANTS = ("ats", "designed")
 
+# A CV is a one-page document unless you have a specific reason otherwise.
+DEFAULT_MAX_PAGES = 1
+
 
 @dataclass
 class Built:
@@ -25,6 +28,10 @@ class Built:
     pdf: Path
     tex: Path
     warnings: list[str]
+    pages: int = 0
+
+    def overflows(self, max_pages: int = DEFAULT_MAX_PAGES) -> bool:
+        return self.pages > max_pages
 
 
 def build_cv(
@@ -74,4 +81,11 @@ def build_cv(
 
     result = compile_pdf(tex_source, pdf_path, resources=resources, repo_root=repo_root)
     warnings.extend(f"{variant}/{lang}: {w}" for w in result.warnings)
-    return Built(lang=lang, variant=variant, pdf=pdf_path, tex=tex_path, warnings=warnings)
+    return Built(
+        lang=lang,
+        variant=variant,
+        pdf=pdf_path,
+        tex=tex_path,
+        warnings=warnings,
+        pages=result.pages,
+    )

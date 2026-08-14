@@ -21,7 +21,15 @@ class LatexError(Exception):
 @dataclass
 class CompileResult:
     pdf: Path
+    pages: int = 0
     warnings: list[str] = field(default_factory=list)
+
+
+def page_count(pdf: Path | str) -> int:
+    """Pages in a PDF. Uses pypdf rather than pdfinfo, which may not be installed."""
+    from pypdf import PdfReader
+
+    return len(PdfReader(str(pdf)).pages)
 
 
 # A badly overfull box means text is running off the edge of the page — the kind
@@ -125,7 +133,7 @@ def compile_pdf(
         shutil.copy2(produced, out_pdf)
         warnings = overfull_warnings(log)
 
-    return CompileResult(pdf=out_pdf, warnings=warnings)
+    return CompileResult(pdf=out_pdf, pages=page_count(out_pdf), warnings=warnings)
 
 
 def pdf_to_text(pdf: Path | str) -> str:

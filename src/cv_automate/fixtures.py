@@ -21,7 +21,8 @@ from .models import (
 DEFAULT_ACCENT = "#2F5D8C"  # calm slate blue; used when no company colour applies
 
 _CATEGORY_LABELS: dict[str, dict[Lang, str]] = {
-    "languages": {"en": "Languages", "pl": "Języki programowania"},
+    # "Languages" alone would collide with the spoken-languages section.
+    "languages": {"en": "Programming languages", "pl": "Języki programowania"},
     "data": {"en": "Data", "pl": "Dane"},
     "infrastructure": {"en": "Infrastructure", "pl": "Infrastruktura"},
     "general": {"en": "Other", "pl": "Inne"},

@@ -57,11 +57,46 @@ so do not guess at them.
   if they say "ELT" and the profile says "ingestion pipeline", use their word \
   for the same thing. This is rephrasing, not inventing.
 - Keep concrete numbers from the profile; they are the strongest thing on a CV.
-- Aim for a CV that fits one page for early-career, two at most otherwise. \
-  Selecting less is usually better than shrinking everything.
-- `summary` is 2-4 sentences aimed squarely at this role. `headline` is a short \
+- `summary` is 2-3 sentences aimed squarely at this role. `headline` is a short \
   title, usually echoing the posting's own job title where the profile \
   supports the claim.
+
+# It must fit on one page
+
+This is a hard requirement, not a preference. The CV is typeset on a single A4 \
+page; anything that does not fit is a failure, and you cannot see the result, \
+so you have to budget for it up front.
+
+The way to fit one page is to **select less**, never to write thinner. Four \
+strong, specific bullets beat ten vague ones, and a role that has nothing to do \
+with this posting is better dropped than reduced to a stub.
+
+Budget for a single page — these ceilings are measured against the actual \
+templates, not estimated. Treat them as ceilings, not targets:
+
+- **9 bullets across the entire CV**, counting project bullets. Fewer is normal \
+  and usually better.
+- **3 roles carrying bullets.** Give the most relevant role 4, the next 3, the \
+  third 2. Older or less relevant roles still belong on the CV for continuity — \
+  include them with an empty `bullets` list so they render as a single line of \
+  title, employer and dates.
+- **1 education entry**, normally with no bullets at all. Include a bullet only \
+  if the thesis or coursework is directly relevant to this posting.
+- **0-1 projects.** A project bullet costs the same space as a job bullet, so \
+  include one only where it beats a job bullet you would otherwise use. Most \
+  tailorings should have none.
+- **2-3 certificates**, only ones this employer would care about. A long list of \
+  tangential certificates costs a third of a page and persuades nobody.
+- **3-4 skill groups**, each a short comma-separated line.
+
+A CV using the full budget — 3 roles at 4/3/2 bullets, one project, two \
+certificates, three skill groups — fills the page exactly. Anything more \
+overflows.
+
+When you are over budget, cut in this order: projects first, then tangential \
+certificates, then bullets from the least relevant role, then whole roles' \
+bullets (keeping the role as a one-liner). Never cut the summary to make room \
+for a bullet.
 - Write everything in the target language given below. Do not translate proper \
   nouns that should stay as they are: employer names, product names, \
   technologies, and the names of certificates and institutions.
@@ -102,6 +137,34 @@ class TailorResult:
     cache_read_tokens: int
 
 
+@dataclass
+class Overflow:
+    """What the previous attempt actually produced, measured from the PDF."""
+
+    pages: int
+    max_pages: int
+    previous: TailoredCV
+
+    def as_prompt(self) -> str:
+        t = self.previous
+        bullets = sum(
+            len(e.bullets) for e in [*t.experience, *t.education, *t.projects]
+        )
+        roles_with_bullets = sum(1 for e in t.experience if e.bullets)
+        return (
+            f"Your previous attempt came to {self.pages} pages when typeset. The limit is "
+            f"{self.max_pages}. That attempt had {bullets} bullets across "
+            f"{roles_with_bullets} roles carrying bullets, {len(t.projects)} projects, "
+            f"{len(t.certificate_ids)} certificates and {len(t.skill_groups)} skill groups.\n\n"
+            "Produce a shorter tailoring. Cut roughly "
+            f"{max(2, round(bullets * (1 - self.max_pages / self.pages)))} bullets' worth of "
+            "content, following the cut order in your instructions: projects first, then "
+            "tangential certificates, then bullets from the least relevant role. Keep every "
+            "role on the CV for continuity — drop their bullets rather than the role itself. "
+            "Do not shorten the wording of the bullets you keep; drop whole bullets instead."
+        )
+
+
 def _profile_yaml(profile: Profile) -> str:
     return yaml.safe_dump(
         profile.model_dump(mode="json", exclude_none=True),
@@ -134,8 +197,13 @@ def tailor(
     lang: Lang,
     client=None,
     model: str = MODEL,
+    overflow: Overflow | None = None,
 ) -> TailorResult:
     """Produce a tailoring of ``profile`` for ``job`` in ``lang``.
+
+    Pass ``overflow`` to ask for a shorter second attempt after measuring the
+    first one's page count — the model cannot see how long its output renders,
+    so this is the only way it can correct for it.
 
     The result is *not* yet validated against the profile — call
     ``profile.validate_tailoring`` before rendering it.
@@ -162,6 +230,8 @@ def tailor(
         f"<job_posting source={job.path.name!r}>\n{job.text}\n</job_posting>\n\n"
         "Tailor the CV to this posting."
     )
+    if overflow is not None:
+        user += "\n\n" + overflow.as_prompt()
 
     response = client.messages.parse(
         model=model,

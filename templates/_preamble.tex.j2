@@ -1,6 +1,6 @@
-%# Shared preamble. Include AFTER setting `use_color` in the child template.
-%# Page geometry is deliberately NOT here: the two variants differ on it.
-\documentclass[11pt,a4paper]{article}
+%# Shared preamble. Include AFTER setting `use_color` and `fontsize` in the
+%# child template. Page geometry is deliberately NOT here: the variants differ.
+\documentclass[\VAR{ fontsize },a4paper]{article}
 
 \usepackage{fontspec}
 \usepackage{polyglossia}
@@ -18,14 +18,18 @@
 \BLOCK{ endif }
 \definecolor{muted}{HTML}{555555}
 
+%# Spacing is tuned so a realistic CV — around 3 roles, 8-10 bullets, education,
+%# a few certificates and skills — lands on one page. Loosen these and the
+%# model has to cut real content to fit, which is the wrong trade.
 \usepackage{enumitem}
-\setlist[itemize]{leftmargin=1.1em, itemsep=0.12em, topsep=0.25em, parsep=0pt, label=\textbullet}
+\setlist[itemize]{leftmargin=1.0em, itemsep=0.04em, topsep=0.12em, parsep=0pt,
+                  partopsep=0pt, label=\textbullet}
 
 \usepackage{titlesec}
 \titleformat{\section}
   {\large\bfseries\color{accent}}{}{0pt}{}
-  [\vspace{-0.55em}{\color{accent}\rule{\linewidth}{0.7pt}}]
-\titlespacing*{\section}{0pt}{1.15em}{0.55em}
+  [\vspace{-0.5em}{\color{accent}\rule{\linewidth}{0.7pt}}]
+\titlespacing*{\section}{0pt}{0.75em}{0.3em}
 
 \usepackage{needspace}
 %# Page-break guards. LaTeX will happily strand a section heading or a job title
